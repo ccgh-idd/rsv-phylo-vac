@@ -25,6 +25,7 @@ vacc_data <- data.frame(
 # 3. Pre-populate known adopters based on national regulator approvals / programme launches
 # Sources: EMA (Arexvy/Abrysvo approved June/Aug 2023), FDA, Health Canada, PMDA, ANMAT,
 #          Swissmedic, NIAC, Folkhälsomyndigheten, Medsafe, Wikipedia RSV vaccine article.
+# I need to check coverage of these programmes, unsure how successful they have been outside of Europe/USA. 
 # High confidence (formal national programme confirmed):
 adopters_2023 <- c(
   "USA",          # FDA approved May/Jul 2023; ACIP recommended

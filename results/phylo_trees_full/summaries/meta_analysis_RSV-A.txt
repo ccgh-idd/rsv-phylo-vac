@@ -6,10 +6,8 @@ I² = 65.27784 %
 
 Random-Effects Model (k = 9; tau^2 estimator: REML)
 
-  logLik  deviance       AIC       BIC   
- 40.8313  -81.6627  -77.6627  -77.5038   
-    AICc   
--75.2627   
+  logLik  deviance       AIC       BIC      AICc   
+ 40.8313  -81.6627  -77.6627  -77.5038  -75.2627   
 
 tau^2 (estimated amount of total heterogeneity): 0.0000 (SE = 0.0000)
 tau (square root of estimated tau^2 value):      0.0009
