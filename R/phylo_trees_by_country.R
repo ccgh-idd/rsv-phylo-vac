@@ -92,7 +92,21 @@ seqs_b <- read_fasta_named(here("data", "sequences", "rsv-b_analysis_ready.fasta
 cat(sprintf("  RSV-A: %d sequences | RSV-B: %d sequences (full dataset)\n",
             length(seqs_a), length(seqs_b)))
 
-# ── 3b. Per-country stratified subsampling ────────────────────────────────────
+# ── 3b. Outgroup selection ────────────────────────────────────────────────────
+# Use the canonical reference strain F protein from the opposite subtype as
+# outgroup. RSV-A trees use RSV-B B1 (NP_056863.1, NC_001781.1) as outgroup,
+# and RSV-B trees use RSV-A A2 (YP_009518857.1, NC_038235.1).
+# Reference FASTA files live in data/reference_sequences/.
+og_for_a <- read_fasta_named(
+  here("data", "reference_sequences", "rsv_b_B1_F_NP_056863.fasta"))
+og_for_b <- read_fasta_named(
+  here("data", "reference_sequences", "rsv_a_A2_F_YP_009518857.fasta"))
+cat(sprintf("  Outgroup for RSV-A trees: %s (RSV-B B1 reference)\n",
+            names(og_for_a)))
+cat(sprintf("  Outgroup for RSV-B trees: %s (RSV-A A2 reference)\n",
+            names(og_for_b)))
+
+# ── 3c. Per-country stratified subsampling ────────────────────────────────────
 # For countries with > MAX_PER_COUNTRY sequences, sample proportionally across
 # years so temporal coverage is preserved. Countries below the cap are kept whole.
 stratified_subsample <- function(meta_sub, max_n, seed = 42) {
@@ -116,18 +130,22 @@ cat(sprintf("  After per-country cap (%d): %d sequences across %d countries\n",
 
 # ── 4. Helper functions ───────────────────────────────────────────────────────
 
-# Build a midpoint-rooted NJ tree from a named character vector of AA sequences
-build_tree <- function(seq_vec, country, subtype) {
-  # Convert to phyDat
-  mat <- do.call(rbind, strsplit(seq_vec, ""))
-  rownames(mat) <- names(seq_vec)
-  pd <- phyDat(mat, type = "AA")
+# Build an ML tree (with outgroup included if supplied) and return both rootings so
+# the effect of root placement can be assessed without repeating the ML optimisation.
+build_tree <- function(seq_vec, country, subtype, outgroup_seq = NULL) {
+  og_label     <- names(outgroup_seq)   # NULL when no outgroup supplied
+  seq_vec_full <- if (!is.null(outgroup_seq)) c(outgroup_seq, seq_vec) else seq_vec
 
-  # Distance matrix and NJ tree
-  dm  <- dist.ml(pd, model = "WAG")
-  nj  <- NJ(dm)
+  # ── Alignment → phyDat ────────────────────────────────────────────────────
+  mat <- do.call(rbind, strsplit(seq_vec_full, ""))
+  rownames(mat) <- names(seq_vec_full)
+  pd  <- phyDat(mat, type = "AA")
 
-  # ML optimisation (topology + branch lengths, WAG model)
+  # ── NJ starting tree ──────────────────────────────────────────────────────
+  dm <- dist.ml(pd, model = "WAG")
+  nj <- NJ(dm)
+
+  # ── ML optimisation (topology + branch lengths, WAG model) ────────────────
   fit <- pml(nj, pd, model = "WAG")
   opt <- tryCatch(
     optim.pml(fit, optNni = TRUE, optBf = FALSE, optQ = FALSE,
@@ -137,9 +155,25 @@ build_tree <- function(seq_vec, country, subtype) {
       fit
     }
   )
+  unrooted <- opt$tree
 
-  tree <- midpoint(opt$tree)   # midpoint root
-  tree
+  # ── Outgroup rooting ───────────────────────────────────────────────────────
+  if (!is.null(og_label) && og_label %in% unrooted$tip.label) {
+    tree_og <- ape::root(unrooted, outgroup = og_label, resolve.root = TRUE)
+    tree_og <- ape::drop.tip(tree_og, og_label)
+  } else {
+    tree_og <- midpoint(unrooted)   # fallback: no outgroup available
+  }
+
+  # ── Midpoint rooting (on same unrooted tree, outgroup dropped first) ───────
+  tree_no_og <- if (!is.null(og_label) && og_label %in% unrooted$tip.label) {
+    ape::drop.tip(unrooted, og_label)
+  } else {
+    unrooted
+  }
+  tree_mp <- midpoint(tree_no_og)
+
+  list(outgroup = tree_og, midpoint = tree_mp)
 }
 
 # Root-to-tip regression
@@ -224,7 +258,7 @@ compare_periods <- function(rtt_result, vacc_decimal, country) {
 
 # ── 5. Main loop: build trees + compute rates ──────────────────────────────────
 
-run_subtype <- function(subtype_label, seqs_all, meta_sub_all) {
+run_subtype <- function(subtype_label, seqs_all, meta_sub_all, outgroup_seq = NULL) {
   cat(sprintf("\n════════ %s ════════\n", subtype_label))
 
   countries <- meta_sub_all %>%
@@ -235,9 +269,10 @@ run_subtype <- function(subtype_label, seqs_all, meta_sub_all) {
   cat(sprintf("Countries with >= %d sequences: %s\n", MIN_SEQS,
               paste(countries, collapse = ", ")))
 
-  country_trees  <- list()
-  rtt_results    <- list()
-  period_results <- list()
+  country_trees   <- list()
+  rtt_results     <- list()
+  period_results  <- list()
+  rooting_compare <- list()
 
   for (country in countries) {
     cat(sprintf("\n  [%s] Building tree...", country))
@@ -253,16 +288,17 @@ run_subtype <- function(subtype_label, seqs_all, meta_sub_all) {
       next
     }
 
-    # Build tree
-    tree <- tryCatch(
-      build_tree(seq_sub, country, subtype_label),
+    # Build trees (ML optimised once with outgroup; returns both rootings)
+    tree_pair <- tryCatch(
+      build_tree(seq_sub, country, subtype_label, outgroup_seq = outgroup_seq),
       error = function(e) {
         message(sprintf("  Tree build failed: %s", e$message))
         NULL
       }
     )
 
-    if (is.null(tree)) next
+    if (is.null(tree_pair)) next
+    tree <- tree_pair$outgroup   # primary tree: outgroup-rooted
 
     # Save tree
     safe_name <- gsub("[^A-Za-z0-9_]", "_", country)
@@ -272,12 +308,23 @@ run_subtype <- function(subtype_label, seqs_all, meta_sub_all) {
 
     country_trees[[country]] <- tree
 
-    # RTT regression
-    rtt <- rtt_regression(tree, meta_sub_all)
+    # RTT regression (primary: outgroup-rooted)
+    rtt    <- rtt_regression(tree,              meta_sub_all)
+    rtt_mp <- rtt_regression(tree_pair$midpoint, meta_sub_all)
     if (!is.null(rtt)) {
       rtt_results[[country]] <- rtt
       cat(sprintf(" rate = %.2e sub/site/yr (R² = %.3f)\n",
                   rtt$rate, rtt$r_squared))
+    }
+
+    # Rooting comparison: store both slope estimates side-by-side
+    if (!is.null(rtt) && !is.null(rtt_mp)) {
+      rooting_compare[[country]] <- tibble(
+        country       = country,
+        rate_outgroup = rtt$rate,    r2_outgroup = rtt$r_squared,
+        rate_midpoint = rtt_mp$rate, r2_midpoint = rtt_mp$r_squared,
+        rate_diff_root = rtt$rate - rtt_mp$rate
+      )
     }
 
     # Pre/post vaccination comparison (only for vaccinating countries)
@@ -292,15 +339,26 @@ run_subtype <- function(subtype_label, seqs_all, meta_sub_all) {
     }
   }
 
-  list(trees = country_trees, rtt = rtt_results, periods = period_results)
+  list(trees = country_trees, rtt = rtt_results, periods = period_results,
+       rooting_compare = rooting_compare)
 }
 
 # Split metadata by subtype
 meta_a <- meta %>% filter(subtype == "RSV-A")
 meta_b <- meta %>% filter(subtype == "RSV-B")
 
-results_a <- run_subtype("RSV-A", seqs_a, meta_a)
-results_b <- run_subtype("RSV-B", seqs_b, meta_b)
+results_a <- run_subtype("RSV-A", seqs_a, meta_a, outgroup_seq = og_for_a)
+results_b <- run_subtype("RSV-B", seqs_b, meta_b, outgroup_seq = og_for_b)
+
+# ── 5b. Rooting comparison ────────────────────────────────────────────────────
+# Compare RTT slope estimates under outgroup vs midpoint rooting to assess
+# whether root placement materially changes rate estimates.
+rooting_cmp <- bind_rows(
+  bind_rows(results_a$rooting_compare) %>% mutate(subtype = "RSV-A"),
+  bind_rows(results_b$rooting_compare) %>% mutate(subtype = "RSV-B")
+)
+write_csv(rooting_cmp, file.path(out_summ, "rooting_comparison.csv"))
+cat(sprintf("Rooting comparison saved: %d countries\n", nrow(rooting_cmp)))
 
 # ── 6. Build summary tables ───────────────────────────────────────────────────
 
@@ -647,7 +705,7 @@ plot_trees <- function(trees, meta_sub, subtype_label) {
       ) +
       labs(
         title    = sprintf("%s – %s phylogenetic tree", subtype_label, country),
-        subtitle = sprintf("%d tips  |  midpoint-rooted  |  WAG model",
+        subtitle = sprintf("%d tips  |  outgroup-rooted (midpoint fallback)  |  WAG model",
                            ape::Ntip(tree))
       ) +
       theme_tree2() +
