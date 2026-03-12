@@ -1,0 +1,11 @@
+https://pathoplexus.org/rsv-a/search
+- All entries
+- Aligned amino acid sequences for F
+- Saved in rsv-a_aligned-aa-F_2026-03-05T1242.fasta
+- meta-data: rsv-a_metadata_2026-03-05T1245.tsv
+
+https://pathoplexus.org/rsv-b/search
+- All entries
+- Aligned amino acid sequences for F
+- Saved in rsv-b_aligned-aa-F_2026-03-05T1242.fasta
+- meta-data: rsv-b_metadata_2026-03-05T1245.tsv

@@ -1,0 +1,6 @@
+Cleaning Summary for: rsv-b_aligned-aa-F_2026-03-05T1244.fasta 
+ --------------------------------------------------
+ Initial number of sequences: 29270 
+ Number of sequences removed (more than 50% 'X'): 14030 
+ Final number of sequences: 15240 
+
