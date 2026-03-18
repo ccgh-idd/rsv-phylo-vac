@@ -1,6 +1,6 @@
 # RSV Vaccination and Evolutionary Dynamics
 
-Does RSV vaccination change the evolutionary rate of the virus? This project uses publicly available RSV-A and RSV-B sequences to test whether the introduction of RSV vaccines (from 2023 onwards) is associated with a detectable shift in viral evolutionary dynamics.
+Does RSV vaccination change the evolutionary rate of the virus? And are the strains that have emerged since vacciantion more transmissive? This project uses publicly available RSV-A and RSV-B sequences to test whether the introduction of RSV vaccines (from 2023 onwards) is associated with a detectable shift in viral evolutionary dynamics.
 
 ## Approach
 

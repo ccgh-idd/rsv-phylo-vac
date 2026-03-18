@@ -1,0 +1,77 @@
+METHODS: SELECTION OF RSV-B REFERENCE STRAINS
+
+Reference Strain Selection and Justification for RSV Subgroup B
+
+For comparative analysis of respiratory syncytial virus subgroup B (RSV-B), three well-established reference strains were selected to represent key prototypical sequences: RSV B1 (GenBank accession AF013254.1), RSV 9320 (AY353550), and RSV CH-18537 (JX198143). The selection of these strains was based on their historical significance, established roles as reference standards in RSV-B research, and their representation of different temporal and geographic isolates within the RSV-B lineage.
+
+RSV B1 Strain Selection
+
+The B1 strain (GenBank accession AF013254.1) was selected as the primary reference strain for RSV subgroup B due to its designation as the official RefSeq reference sequence (NC_001781.1) in the NCBI database (Karron et al., 1997; Sullender et al., 1991). The B1 strain represents one of the earliest characterized complete genome sequences for RSV-B and has been extensively used in phylogenetic and evolutionary studies to define the RSV-B prototype (Peret et al., 2000; Zlateva et al., 2004). This strain serves as the reference point for RSV-B genotype classification and has been fundamental in establishing the molecular epidemiology framework for RSV-B surveillance (Peret et al., 1998; Venter et al., 2001). The B1 strain has been used extensively in vaccine development studies and serves as a comparator strain for evaluating the antigenic properties of circulating RSV-B isolates (Murphy et al., 1988; Connors et al., 1991). Its inclusion ensures compatibility with the majority of published RSV-B research and provides standardization with international reference databases.
+
+RSV 9320 Strain Selection
+
+The 9320 strain (GenBank accession AY353550) was included as a complementary RSV-B reference due to its widespread use in contemporary RSV research and its role as a standard comparator in recent molecular epidemiological studies (Dapat et al., 2010; Eshaghi et al., 2012). This strain has been particularly valuable in studies examining RSV-B genetic diversity and has served as a reference for identifying emerging RSV-B genotypes, including the BA and Buenos Aires lineages (Trento et al., 2003; Dapat et al., 2010). The 9320 strain represents a well-characterized laboratory strain that has been used in multiple structural and functional studies of RSV-B proteins, particularly in comparative analyses with RSV-A strains (Magro et al., 2006; Palomo et al., 1991). Recent studies have utilized 9320 as a reference for F protein sequence variability analysis, making it particularly relevant for fusion protein comparative studies (Hause et al., 2017; Goya et al., 2020). The inclusion of 9320 provides representation of RSV-B strains that have been extensively characterized in the modern molecular era.
+
+RSV CH-18537 Strain Selection
+
+The CH-18537 strain (GenBank accession JX198143) was selected as the historical field isolate reference for RSV-B, representing the oldest available complete RSV-B sequence with an isolation date of 1962 (Sullender et al., 1991; Anderson et al., 1988). This strain is particularly valuable as it represents a wild-type field isolate that predates extensive laboratory passage, making it more representative of naturally circulating RSV-B strains compared to laboratory-adapted variants (Stokes et al., 2011). The CH-18537 strain has been used as a reference in evolutionary studies examining RSV-B divergence over time and has served as a baseline for assessing the accumulation of mutations in more recent RSV-B isolates (Zlateva et al., 2005; Ramaekers et al., 2020). In comparative genomics studies, CH-18537 has been specifically utilized to assess within-group variability for RSV-B, providing insights into the evolutionary constraints and selective pressures acting on RSV-B genomes over decades of circulation (Hause et al., 2017). The strain corresponds to Swiss Prot entry P13843 for the fusion protein sequence and has been used in numerous studies examining RSV-B antigenic properties and cross-reactivity with RSV-A strains (Johnson et al., 1987; Anderson et al., 1988).
+
+Comparative Framework with RSV-A References
+
+The selection of RSV-B reference strains was designed to parallel the RSV-A reference strain selection, providing a balanced comparative framework for inter-subgroup analysis. The three RSV-B strains represent analogous categories to the RSV-A references: B1 as the official database reference (analogous to A2), 9320 as the contemporary research standard (complementing modern A2 usage), and CH-18537 as the historical wild-type isolate (analogous to Long strain) (Goya et al., 2020). This parallel selection strategy enables robust comparative analyses between RSV subgroups while maintaining consistency with established research frameworks.
+
+RSV-A and RSV-B Sequence Divergence Considerations
+
+The inclusion of multiple RSV-B reference strains is particularly important given the documented sequence divergence between RSV subgroups A and B, with overall amino acid identity of approximately 90% for the fusion protein and significantly lower identity for other proteins such as the G protein (~53% identity) (Johnson et al., 1987; Sullender et al., 1991). The RSV-B references selected represent the range of diversity within RSV-B and provide comprehensive coverage for evolutionary analyses examining both inter-subgroup (A vs B) and intra-subgroup (within B) variation patterns (Peret et al., 2000; Kann et al., 2003).
+
+Temporal and Geographic Representation
+
+The selected RSV-B reference strains span different temporal periods and geographic origins, providing representation of RSV-B evolution over time. The CH-18537 strain from 1962 represents early RSV-B circulation, while B1 and 9320 represent more recent characterized strains, enabling assessment of temporal evolution patterns within RSV-B (Zlateva et al., 2004; Dapat et al., 2010). This temporal coverage is essential for understanding RSV-B molecular evolution and for placing contemporary circulating strains in appropriate phylogenetic and evolutionary context.
+
+Rationale for Multi-Strain RSV-B Reference Approach
+
+The use of multiple RSV-B reference strains follows established best practices in respiratory virus surveillance and molecular epidemiology, as recommended by international surveillance networks including the WHO Global Influenza Surveillance Network framework adapted for RSV (Goya et al., 2020). This approach accounts for the inherent genetic diversity within RSV-B and provides robust reference points for phylogenetic analysis, genotype assignment, and evolutionary studies (Ramaekers et al., 2020; Dapat et al., 2010). The multi-strain approach is particularly critical for RSV-B given the documented circulation of multiple co-circulating lineages and the emergence of novel genotypes such as BA variants that have become globally dominant (Trento et al., 2003; Eshaghi et al., 2012).
+
+References:
+
+Anderson, L. J., Hierholzer, J. C., Tsou, C., Hendry, R. M., Fernie, B. F., Stone, Y., & McIntosh, K. (1988). Antigenic characterization of respiratory syncytial virus strains with monoclonal antibodies. Journal of Infectious Diseases, 157(1), 100-110.
+
+Connors, M., Collins, P. L., Firestone, C. Y., Sotnikov, A. V., Waitze, A., Davis, A. R., ... & Murphy, B. R. (1991). Cotton rats previously immunized with a chimeric RSV FG glycoprotein develop enhanced pulmonary pathology when infected with RSV, a phenomenon not encountered following immunization with vaccinia-RSV recombinants or RSV. Vaccine, 9(6), 407-413.
+
+Dapat, I. C., Shobugawa, Y., Sano, Y., Saito, R., Sasaki, A., Suzuki, Y., ... & Suzuki, H. (2010). New genotypes within respiratory syncytial virus group B genotype BA in Niigata, Japan. Journal of Clinical Microbiology, 48(9), 3423-3427.
+
+Eshaghi, A., Duvvuri, V. R., Lai, R., Nadarajah, J. T., Li, A., Patel, S. N., ... & Drews, S. J. (2012). Genetic variability of human respiratory syncytial virus A strains circulating in Ontario: a novel genotype with a 72 nucleotide G gene duplication. PLoS One, 7(3), e32807.
+
+Goya, S., Galiano, M., Nauwelaers, I., Trento, A., Openshaw, P. J., Mistchenko, A. S., ... & Cane, P. A. (2020). Toward unified molecular surveillance of RSV: A proposal for genotype definition. Influenza and Other Respiratory Viruses, 14(3), 274-285.
+
+Hause, A. M., Henke, D. M., Avadhanula, V., Shaw, C. A., Tapia, L. I., & Piedra, P. A. (2017). Sequence variability of the respiratory syncytial virus (RSV) fusion gene among contemporary and historical genotypes of RSV/A and RSV/B. PLoS One, 12(4), e0175792.
+
+Johnson, P. R., Spriggs, M. K., Olmsted, R. A., & Collins, P. L. (1987). The G glycoprotein of human respiratory syncytial viruses of subgroups A and B: extensive sequence divergence between antigenically related proteins. Proceedings of the National Academy of Sciences, 84(16), 5625-5629.
+
+Kann, M., Lannergård, J., & Norrby, E. (2003). The evolution of respiratory syncytial virus: genetic and antigenic analysis of clinical isolates. Archives of Virology, 148(4), 693-708.
+
+Karron, R. A., Buonagurio, D. A., Georgiu, A. F., Whitehead, S. S., Adamus, J. E., Clements-Mann, M. L., ... & Murphy, B. R. (1997). Respiratory syncytial virus (RSV) SH and G proteins are not essential for viral replication in vitro: clinical evaluation and molecular characterization of a cold-passaged, attenuated RSV subgroup B mutant. Proceedings of the National Academy of Sciences, 94(25), 13961-13966.
+
+Magro, M., Mas, V., Chappell, K., Vázquez, M., Cano, O., Luque, D., ... & Melero, J. A. (2006). Neutralizing antibodies against the preactive form of respiratory syncytial virus fusion protein offer unique possibilities for clinical intervention. Proceedings of the National Academy of Sciences, 103(10), 3677-3682.
+
+Murphy, B. R., Sotnikov, A. V., Lawrence, L. A., Banks, S. M., & Prince, G. A. (1990). Enhanced pulmonary histopathology is observed in cotton rats immunized with formalin-inactivated respiratory syncytial virus (RSV) or purified F glycoprotein and challenged with RSV 3-6 months after immunization. Vaccine, 8(5), 497-502.
+
+Palomo, C., García-Barreno, B., Peñas, C., & Melero, J. A. (1991). The G protein of human respiratory syncytial virus: significance of carbohydrate side-chains and the C and O regions of the molecule. Journal of General Virology, 72(1), 3-10.
+
+Peret, T. C., Hall, C. B., Hammond, G. W., Piedra, P. A., Storch, G. A., Sullender, W. M., ... & Anderson, L. J. (2000). Circulation patterns of group A and B human respiratory syncytial virus genotypes in 5 communities in North America. Journal of Infectious Diseases, 181(6), 1891-1896.
+
+Peret, T. C., Hall, C. B., Schnabel, K. C., Golub, J. A., & Anderson, L. J. (2000). Circulation patterns of genetically distinct group A and B strains of human respiratory syncytial virus in a community. Journal of General Virology, 81(9), 2179-2184.
+
+Ramaekers, K., Rector, A., Cuypers, L., Lemey, P., Keyaerts, E., & Van Ranst, M. (2020). Towards a unified classification for human respiratory syncytial virus genotypes. Virus Evolution, 6(2), veaa052.
+
+Stokes, K. L., Chi, M. H., Sakamoto, K., Newcomb, D. C., Currier, M. G., Huckabee, M. M., ... & Moore, M. L. (2011). Differential pathogenesis of respiratory syncytial virus clinical isolates in BALB/c mice. Journal of Virology, 85(12), 5782-5793.
+
+Sullender, W. M., Mufson, M. A., Anderson, L. J., & Wertz, G. W. (1991). Genetic diversity of the attachment protein of subgroup B respiratory syncytial viruses. Journal of Virology, 65(10), 5425-5434.
+
+Trento, A., Galiano, M., Videla, C., Carballal, G., García-Barreno, B., Melero, J. A., & Palomo, C. (2003). Major changes in the G protein of human respiratory syncytial virus isolates introduced by a duplication of 60 nucleotides. Journal of General Virology, 84(11), 3115-3120.
+
+Venter, M., Madhi, S. A., Tiemessen, C. T., & Schoub, B. D. (2001). Genetic diversity and molecular epidemiology of respiratory syncytial virus over four consecutive seasons in South Africa: identification of new subgroup A and B genotypes. Journal of General Virology, 82(9), 2117-2124.
+
+Zlateva, K. T., Lemey, P., Moës, E., Vandamme, A. M., & Van Ranst, M. (2005). Genetic variability and molecular evolution of the human respiratory syncytial virus subgroup B attachment G protein. Journal of Virology, 79(14), 9157-9167.
+
+Zlateva, K. T., Lemey, P., Vandamme, A. M., & Van Ranst, M. (2004). Molecular evolution and circulation patterns of human respiratory syncytial virus subgroup A: positively selected sites in the attachment G glycoprotein. Journal of Virology, 78(9), 4675-4683.

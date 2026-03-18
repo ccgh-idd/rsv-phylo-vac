@@ -77,4 +77,31 @@ meta_b <- prepare_data(
 
 all_meta <- bind_rows(meta_a, meta_b)
 write_csv(all_meta, here("summaries", "all_clean_meta.csv"))
-cat("\nPipeline complete! Final summary data saved to summaries/all_clean_meta.csv\n")
+cat("\nF protein pipeline complete! Final summary data saved to summaries/all_clean_meta.csv\n")
+
+# ── G protein ─────────────────────────────────────────────────────────────────
+# The G protein FASTAs share the same metadata TSVs (accession IDs overlap).
+# Sequences not present in the metadata are silently dropped via intersection
+# inside prepare_data().
+
+cat("\n\n=== Processing G protein ===\n")
+
+meta_a_g <- prepare_data(
+  here("raw_data", "rsv-a_aligned-aa-G_2026-03-18T1233.fasta"),
+  here("raw_data", "rsv-a_metadata_2026-03-05T1245.tsv"),
+  here("data", "sequences", "rsv-a_G_analysis_ready.fasta"),
+  here("summaries", "rsv-a_G_clean_meta.csv"),
+  "RSV-A"
+)
+
+meta_b_g <- prepare_data(
+  here("raw_data", "rsv-b_aligned-aa-G_2026-03-18T1234.fasta"),
+  here("raw_data", "rsv-b_metadata_2026-03-05T1245.tsv"),
+  here("data", "sequences", "rsv-b_G_analysis_ready.fasta"),
+  here("summaries", "rsv-b_G_clean_meta.csv"),
+  "RSV-B"
+)
+
+all_meta_g <- bind_rows(meta_a_g, meta_b_g)
+write_csv(all_meta_g, here("summaries", "all_clean_G_meta.csv"))
+cat("\nG protein pipeline complete! Final summary data saved to summaries/all_clean_G_meta.csv\n")

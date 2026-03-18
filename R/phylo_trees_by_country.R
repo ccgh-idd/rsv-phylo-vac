@@ -41,9 +41,15 @@ for (pkg in packages) {
   suppressPackageStartupMessages(library(pkg, character.only = TRUE))
 }
 
+# ── 0b. Protein selection ────────────────────────────────────────────────────
+# Set PROTEIN to "F" (fusion) or "G" (attachment) before running.
+# All data paths and output directories are derived from this single flag.
+
+PROTEIN <- "F"   # "F" = fusion protein  |  "G" = attachment protein
+
 # ── 1. Output directories ─────────────────────────────────────────────────────
 
-out_base   <- here("results", "phylo_trees_full")
+out_base   <- here("results", if (PROTEIN == "G") "phylo_trees_G" else "phylo_trees_full")
 out_trees  <- file.path(out_base, "trees")
 out_plots  <- file.path(out_base, "plots")
 out_summ   <- file.path(out_base, "summaries")
@@ -58,11 +64,15 @@ MIN_SEQS        <- 10   # minimum sequences per country to attempt a tree
 MIN_PRE_POST    <- 5    # minimum sequences in each time period for rate comparison
 MAX_PER_COUNTRY <- 300  # per-country cap before tree building (stratified by year)
                         # keeps tree building tractable even for USA (n=13k)
+MIN_R2          <- 0.05 # minimum R² of the overall RTT regression to include a
+                        # country in the meta-analysis (filters out countries with
+                        # no meaningful temporal signal)
 
 # ── 3. Load data ──────────────────────────────────────────────────────────────
 
 cat("Loading metadata...\n")
-meta <- read_csv(here("summaries", "all_clean_meta.csv"),
+meta_csv <- if (PROTEIN == "G") "all_clean_G_meta.csv" else "all_clean_meta.csv"
+meta <- read_csv(here("summaries", meta_csv),
                  show_col_types = FALSE) %>%
   mutate(
     # Decimal year: e.g. 2023-07-15 → 2023.535
@@ -86,25 +96,34 @@ read_fasta_named <- function(path) {
   vapply(seqs, function(x) toupper(paste(x, collapse = "")), character(1))
 }
 
-seqs_a <- read_fasta_named(here("data", "sequences", "rsv-a_analysis_ready.fasta"))
-seqs_b <- read_fasta_named(here("data", "sequences", "rsv-b_analysis_ready.fasta"))
+seq_suffix <- if (PROTEIN == "G") "_G_analysis_ready.fasta" else "_analysis_ready.fasta"
+seqs_a <- read_fasta_named(here("data", "sequences", paste0("rsv-a", seq_suffix)))
+seqs_b <- read_fasta_named(here("data", "sequences", paste0("rsv-b", seq_suffix)))
 
 cat(sprintf("  RSV-A: %d sequences | RSV-B: %d sequences (full dataset)\n",
             length(seqs_a), length(seqs_b)))
 
 # ── 3b. Outgroup selection ────────────────────────────────────────────────────
 # Use the canonical reference strain F protein from the opposite subtype as
-# outgroup. RSV-A trees use RSV-B B1 (NP_056863.1, NC_001781.1) as outgroup,
-# and RSV-B trees use RSV-A A2 (YP_009518857.1, NC_038235.1).
-# Reference FASTA files live in data/reference_sequences/.
-og_for_a <- read_fasta_named(
-  here("data", "reference_sequences", "rsv_b_B1_F_NP_056863.fasta"))
-og_for_b <- read_fasta_named(
-  here("data", "reference_sequences", "rsv_a_A2_F_YP_009518857.fasta"))
-cat(sprintf("  Outgroup for RSV-A trees: %s (RSV-B B1 reference)\n",
-            names(og_for_a)))
-cat(sprintf("  Outgroup for RSV-B trees: %s (RSV-A A2 reference)\n",
-            names(og_for_b)))
+# outgroup. All three canonical reference strains from the opposite subtype are
+# used together as a multi-tip outgroup: ape::root() roots the tree at the MRCA
+# of all outgroup labels, which is more stable than a single-tip anchor.
+# RSV-A trees use RSV-B B1 + 9320 + CH18537; RSV-B trees use RSV-A A2 + Long + Line19.
+ref_dir <- if (PROTEIN == "G") "reference_sequences_G" else "reference_sequences_F"
+og_for_a <- c(
+  read_fasta_named(here("data", ref_dir, sprintf("rsv-b_%s_B1_AF013254.fasta",       PROTEIN))),
+  read_fasta_named(here("data", ref_dir, sprintf("rsv-b_%s_9320_AY353550.fasta",      PROTEIN))),
+  read_fasta_named(here("data", ref_dir, sprintf("rsv-b_%s_CH18537_JX198143.fasta",   PROTEIN)))
+)
+og_for_b <- c(
+  read_fasta_named(here("data", ref_dir, sprintf("rsv-a_%s_A2_M74568.fasta",         PROTEIN))),
+  read_fasta_named(here("data", ref_dir, sprintf("rsv-a_%s_LongStrain_AY911262.fasta",PROTEIN))),
+  read_fasta_named(here("data", ref_dir, sprintf("rsv-a_%s_Line19_FJ614813.fasta",    PROTEIN)))
+)
+cat(sprintf("  Outgroup for RSV-A trees: %s (RSV-B references)\n",
+            paste(names(og_for_a), collapse = ", ")))
+cat(sprintf("  Outgroup for RSV-B trees: %s (RSV-A references)\n",
+            paste(names(og_for_b), collapse = ", ")))
 
 # ── 3c. Per-country stratified subsampling ────────────────────────────────────
 # For countries with > MAX_PER_COUNTRY sequences, sample proportionally across
@@ -133,7 +152,7 @@ cat(sprintf("  After per-country cap (%d): %d sequences across %d countries\n",
 # Build an ML tree (with outgroup included if supplied) and return both rootings so
 # the effect of root placement can be assessed without repeating the ML optimisation.
 build_tree <- function(seq_vec, country, subtype, outgroup_seq = NULL) {
-  og_label     <- names(outgroup_seq)   # NULL when no outgroup supplied
+  og_label     <- names(outgroup_seq)   # character vector (length >= 1), or NULL
   seq_vec_full <- if (!is.null(outgroup_seq)) c(outgroup_seq, seq_vec) else seq_vec
 
   # ── Alignment → phyDat ────────────────────────────────────────────────────
@@ -158,16 +177,19 @@ build_tree <- function(seq_vec, country, subtype, outgroup_seq = NULL) {
   unrooted <- opt$tree
 
   # ── Outgroup rooting ───────────────────────────────────────────────────────
-  if (!is.null(og_label) && og_label %in% unrooted$tip.label) {
-    tree_og <- ape::root(unrooted, outgroup = og_label, resolve.root = TRUE)
-    tree_og <- ape::drop.tip(tree_og, og_label)
+  # Use whichever outgroup tips are actually present in the tree (some may be
+  # dropped by phangorn if they are identical to another sequence).
+  og_present <- og_label[og_label %in% unrooted$tip.label]
+  if (length(og_present) > 0) {
+    tree_og <- ape::root(unrooted, outgroup = og_present, resolve.root = TRUE)
+    tree_og <- ape::drop.tip(tree_og, og_present)
   } else {
     tree_og <- midpoint(unrooted)   # fallback: no outgroup available
   }
 
   # ── Midpoint rooting (on same unrooted tree, outgroup dropped first) ───────
-  tree_no_og <- if (!is.null(og_label) && og_label %in% unrooted$tip.label) {
-    ape::drop.tip(unrooted, og_label)
+  tree_no_og <- if (length(og_present) > 0) {
+    ape::drop.tip(unrooted, og_present)
   } else {
     unrooted
   }
@@ -332,6 +354,7 @@ run_subtype <- function(subtype_label, seqs_all, meta_sub_all, outgroup_seq = NU
     if (nrow(vacc_row) > 0 && !is.null(rtt)) {
       comp <- compare_periods(rtt, vacc_row$vacc_decimal, country)
       if (!is.null(comp)) {
+        comp$r_squared <- rtt$r_squared   # carry through for meta-analysis filtering
         period_results[[country]] <- comp
         cat(sprintf("       pre-vacc rate = %.2e | post-vacc rate = %.2e | ratio = %.3f | p = %.4f\n",
                     comp$rate_pre, comp$rate_post, comp$rate_ratio, comp$p_value))
@@ -376,7 +399,8 @@ build_rate_table <- function(period_results, subtype_label) {
       se_diff    = r$se_diff,
       p_value    = r$p_value,
       n_pre      = r$n_pre,
-      n_post     = r$n_post
+      n_post     = r$n_post,
+      r_squared  = r$r_squared
     )
   }))
 }
@@ -401,8 +425,11 @@ run_meta <- function(rate_sub, subtype_label) {
 
   # Use the regression-derived SE of the rate difference directly.
   # Works even when rate ratios are negative (pre-rate near 0).
+  # Also exclude countries whose overall RTT regression has weak temporal signal
+  # (R² < MIN_R2) — their slope estimates are dominated by noise.
   rate_sub <- rate_sub %>%
-    filter(is.finite(se_diff), se_diff > 0)
+    filter(is.finite(se_diff), se_diff > 0,
+           !is.na(r_squared), r_squared >= MIN_R2)
 
   if (nrow(rate_sub) < 2) return(NULL)
 
@@ -430,8 +457,14 @@ meta_res <- tryCatch(
 meta_a_res <- run_meta(rate_tbl %>% filter(subtype == "RSV-A"), "RSV-A")
 meta_b_res <- run_meta(rate_tbl %>% filter(subtype == "RSV-B"), "RSV-B")
 
-# ── 8. Visualisation ──────────────────────────────────────────────────────────
-
+# ── 8. Visualisation ──────────────────────────────────────────────────────────# Figure order (outputs in results/.../plots/):
+#   8a ★ SUMMARY: forest_augmented_{subtype}.pdf  ← hero figure
+#   8b   forest_plot_{subtype}.pdf
+#   8c   rtt_{subtype}_{country}.pdf  (one per country)
+#   8d   rate_slope_by_country.pdf
+#   8e   rate_overview_{subtype}.pdf
+#   8f   tree_{subtype}_{country}.pdf (one per country)
+#    9   forest_summary_combined.pdf  ← RSV-A + RSV-B stitched
 theme_rsv <- function() {
   theme_minimal(base_size = 12) +
     theme(
@@ -441,7 +474,7 @@ theme_rsv <- function() {
     )
 }
 
-# ── 8a. RTT regression plots (one per country per subtype) ────────────────────
+# ── 8a. RTT regression plots (one per country per subtype) ────────────────
 
 plot_rtt <- function(rtt_results, period_results, vacc_dates_df, subtype_label) {
   # Each PDF has two panels:
@@ -562,7 +595,7 @@ if (nrow(rate_tbl) > 0) {
   cat("Slope plot saved.\n")
 }
 
-# ── 8c. Forest plot ───────────────────────────────────────────────────────────
+# ── 8c. Standard forest plot ──────────────────────────────────────────────────
 
 make_forest_plot <- function(meta_res_obj, subtype_label, all_rate_tbl) {
   # Uses rate_diff (post slope - pre slope) on a linear scale so ALL countries
@@ -642,7 +675,154 @@ make_forest_plot <- function(meta_res_obj, subtype_label, all_rate_tbl) {
 make_forest_plot(meta_a_res, "RSV-A", rate_tbl)
 make_forest_plot(meta_b_res, "RSV-B", rate_tbl)
 
-# ── 8d. All-country RTT summary (panel of rates) ──────────────────────────────
+# ── 8d ★ SUMMARY: Augmented forest plot (RTT mini-panels left + forest right) ─────
+# For each vaccinating country the left panel shows the RTT scatter with pre/post
+# regression lines (one facet row per country). The rows are vertically aligned
+# with the corresponding country in the forest plot on the right.
+# facet_grid(facet_label ~ .) orders facets top→bottom in factor-level order;
+# the forest plot discrete y-axis has level-1 at the BOTTOM. Reversing the factor
+# levels for the RTT facets ensures the two panels line up side-by-side.
+
+make_augmented_forest_plot <- function(meta_res_obj, subtype_label, all_rate_tbl,
+                                       period_results, vacc_dates_df) {
+  if (is.null(all_rate_tbl)) return(invisible(NULL))
+  overall <- if (!is.null(meta_res_obj)) meta_res_obj$result else NULL
+
+  # ── Build forest data frame ─────────────────────────────────────────────────
+  forest_df <- all_rate_tbl %>%
+    filter(subtype == subtype_label) %>%
+    mutate(
+      mean  = rate_diff,
+      lower = if_else(is.finite(se_diff), rate_diff - 1.96 * se_diff, NA_real_),
+      upper = if_else(is.finite(se_diff), rate_diff + 1.96 * se_diff, NA_real_),
+      label = sprintf("%s  (n=%d/%d)", country, n_pre, n_post),
+      sig   = !is.na(p_value) & p_value < 0.05
+    ) %>%
+    arrange(rate_diff)
+
+  if (!is.null(overall)) {
+    forest_df <- bind_rows(
+      forest_df,
+      tibble(country = NA_character_, label = "Overall (RE meta-analysis)",
+             mean = overall$b[1], lower = overall$ci.lb, upper = overall$ci.ub,
+             sig = overall$pval < 0.05, p_value = overall$pval,
+             n_pre = NA_integer_, n_post = NA_integer_,
+             rate_diff = NA_real_, se_diff = NA_real_, r_squared = NA_real_)
+    )
+  }
+
+  forest_df <- forest_df %>%
+    mutate(label = factor(label, levels = label),
+           is_overall = grepl("Overall", label))
+
+  # ── Forest plot (right panel) ───────────────────────────────────────────────
+  p_forest <- ggplot(forest_df, aes(x = mean, y = label)) +
+    geom_vline(xintercept = 0, linetype = "dashed", colour = "grey40") +
+    geom_errorbar(aes(xmin = lower, xmax = upper),
+                  orientation = "y", width = 0.35, colour = "grey50", na.rm = TRUE) +
+    geom_point(aes(size = is_overall, colour = interaction(is_overall, sig))) +
+    scale_colour_manual(
+      values = c(`FALSE.FALSE` = "#2166ac", `FALSE.TRUE` = "#d6604d",
+                 `TRUE.FALSE`  = "#555555",  `TRUE.TRUE`  = "#b2182b"),
+      guide = "none"
+    ) +
+    scale_size_manual(values = c(`FALSE` = 2.5, `TRUE` = 4.5), guide = "none") +
+    scale_x_continuous(labels = scales::label_scientific(digits = 2)) +
+    labs(
+      x       = "Rate difference (AA sub/site/yr)  |  >0 = faster post-vaccination",
+      y       = NULL,
+      caption = "Orange/red = p<0.05. Error bars = 95% CI from ANCOVA interaction term."
+    ) +
+    theme_rsv() +
+    theme(plot.caption = element_text(size = 8, colour = "grey50"))
+
+  # ── RTT mini-panel (left panel) ────────────────────────────────────────────
+  # Map country name → its forest plot label
+  ctry_to_label <- setNames(as.character(forest_df$label), forest_df$country)
+  # Reverse the factor levels so facets (top→bottom) mirror the forest y-axis
+  rtt_levels_rev <- rev(levels(forest_df$label))
+  period_cols    <- c(pre_vaccination = "#2166ac", post_vaccination = "#d6604d")
+
+  rtt_combined <- bind_rows(lapply(names(period_results), function(ctry) {
+    pr  <- period_results[[ctry]]
+    lbl <- ctry_to_label[[ctry]]
+    if (is.null(pr) || is.null(lbl) || is.na(lbl)) return(NULL)
+    pr$data %>% mutate(facet_label = factor(lbl, levels = rtt_levels_rev))
+  }))
+
+  if (is.null(rtt_combined) || nrow(rtt_combined) == 0) {
+    cat(sprintf("No RTT period data for augmented forest plot: %s\n", subtype_label))
+    return(invisible(NULL))
+  }
+
+  vacc_anno <- vacc_dates_df %>%
+    filter(country %in% names(ctry_to_label)) %>%
+    mutate(lbl = ctry_to_label[country],
+           facet_label = factor(lbl, levels = rtt_levels_rev)) %>%
+    filter(!is.na(facet_label))
+
+  p_rtt <- ggplot(rtt_combined, aes(x = date_decimal, y = rtt,
+                                    colour = period, fill = period)) +
+    geom_point(alpha = 0.4, size = 0.6) +
+    geom_smooth(method = "lm", se = FALSE, linewidth = 0.8) +
+    { if (nrow(vacc_anno) > 0)
+        geom_vline(data = vacc_anno, aes(xintercept = vacc_decimal),
+                   linetype = "dashed", colour = "forestgreen",
+                   linewidth = 0.6, inherit.aes = FALSE)
+      else list() } +
+    scale_colour_manual(values = period_cols,
+                        labels = c(pre_vaccination  = "Pre-vacc",
+                                   post_vaccination = "Post-vacc"),
+                        name = NULL) +
+    scale_fill_manual(values = period_cols, guide = "none") +
+    facet_grid(facet_label ~ ., scales = "free_y", space = "fixed",
+               switch = "y") +   # move strip labels to the left side
+    labs(x = "Year", y = "RTT distance (AA sub/site)") +
+    theme_rsv() +
+    theme(
+      # Country labels: left-side strips, horizontal, readable
+      strip.text.y.left  = element_text(angle = 0, hjust = 1, size = 8,
+                                        margin = margin(r = 4)),
+      strip.placement    = "outside",   # place strip outside the axis
+      # Restore left and bottom axis lines/ticks
+      axis.line.x        = element_line(colour = "grey30", linewidth = 0.4),
+      axis.line.y        = element_line(colour = "grey30", linewidth = 0.4),
+      axis.ticks.x       = element_line(colour = "grey30", linewidth = 0.3),
+      axis.ticks.y       = element_line(colour = "grey30", linewidth = 0.3),
+      axis.text.y        = element_text(size = 6.5),
+      panel.spacing      = unit(0.05, "lines"),
+      axis.text.x        = element_text(size = 7),
+      axis.title         = element_text(size = 9),
+      legend.position    = "bottom",
+      legend.text        = element_text(size = 8)
+    )
+
+  # ── Combine and save ────────────────────────────────────────────────────────
+  p_aug <- (p_rtt | p_forest) +
+    plot_layout(widths = c(1.6, 2)) +
+    plot_annotation(
+      title    = sprintf("%s  |  %s protein  —  Root-to-Tip Regressions and Rate-Difference Forest Plot",
+                         subtype_label, PROTEIN),
+      subtitle = if (!is.null(overall))
+        sprintf("Overall diff = %.2e (95%% CI: %.2e to %.2e)  I\u00b2 = %.1f%%",
+                overall$b[1], overall$ci.lb, overall$ci.ub, overall$I2)
+      else "No meta-analysis (insufficient data)",
+      theme = theme(plot.title    = element_text(face = "bold", size = 14),
+                    plot.subtitle = element_text(size = 11, colour = "grey30"))
+    )
+
+  ggsave(
+    file.path(out_plots, sprintf("forest_augmented_%s.pdf", subtype_label)),
+    p_aug, width = 18, height = max(6, nrow(forest_df) * 0.9 + 2)
+  )
+  cat(sprintf("Augmented forest plot saved: %s\n", subtype_label))
+  invisible(p_aug)   # return for combined figure assembly
+}
+
+aug_a <- make_augmented_forest_plot(meta_a_res, "RSV-A", rate_tbl, results_a$periods, vacc_dates)
+aug_b <- make_augmented_forest_plot(meta_b_res, "RSV-B", rate_tbl, results_b$periods, vacc_dates)
+
+# ── 8e. All-country RTT summary (panel of rates) ──────────────────────────────
 
 plot_all_rtt_rates <- function(rtt_results, subtype_label, colour_val) {
   if (length(rtt_results) == 0) return(invisible(NULL))
@@ -676,7 +856,7 @@ plot_all_rtt_rates <- function(rtt_results, subtype_label, colour_val) {
 plot_all_rtt_rates(results_a$rtt, "RSV-A", "#2166ac")
 plot_all_rtt_rates(results_b$rtt, "RSV-B", "#d6604d")
 
-# ── 8e. Phylogenetic tree plots (rectangular layout, tips coloured by year) ───
+# ── 8f. Phylogenetic tree plots (rectangular layout, tips coloured by year) ───
 
 plot_trees <- function(trees, meta_sub, subtype_label) {
   if (!requireNamespace("ggtree", quietly = TRUE)) {
@@ -730,9 +910,41 @@ plot_trees <- function(trees, meta_sub, subtype_label) {
 plot_trees(results_a$trees, meta_a, "RSV-A")
 plot_trees(results_b$trees, meta_b, "RSV-B")
 
-# ── 9. Done ───────────────────────────────────────────────────────────────────
+# ── 9. Combined summary figure (RSV-A and RSV-B augmented forests) ─────────────
+# Stacks both augmented forest plots into a single landscape PDF that serves as
+# the top-level summary figure for the manuscript / report.
+
+if (!is.null(aug_a) && !is.null(aug_b)) {
+  p_combined <- aug_a / aug_b +
+    plot_layout(heights = c(1, 1)) +
+    plot_annotation(
+      title   = sprintf("RSV Evolutionary Rate Change Post-Vaccination: %s protein",
+                        PROTEIN),
+      caption = paste0(
+        "Top: RSV-A  |  Bottom: RSV-B\n",
+        "Left panels: root-to-tip regression pre (blue) vs post (orange) vaccination.\n",
+        "Right panels: rate difference (post minus pre) with 95% CI.  ",
+        "Orange/red = p<0.05.  Diamond = RE meta-analysis pooled estimate."
+      ),
+      theme = theme(
+        plot.title   = element_text(face = "bold", size = 16),
+        plot.caption = element_text(size = 9, colour = "grey40", hjust = 0)
+      )
+    )
+
+  combined_path <- file.path(out_plots, "forest_summary_combined.pdf")
+  ggsave(combined_path, p_combined,
+         width = 18, height = max(12, (nrow(rate_tbl) * 0.9 + 4)))
+  cat(sprintf("\n★  Combined summary figure saved: %s\n", combined_path))
+} else {
+  cat("\nSkipping combined summary figure (one or both subtypes had no data).\n")
+}
+
+# ── 10. Done ──────────────────────────────────────────────────────────────────────
 
 cat(sprintf("\n✓ All done. Outputs in: %s\n", out_base))
 cat("  trees/    – Newick (.nwk) per country per subtype\n")
 cat("  plots/    – RTT regression, slope, forest, rate overview PDFs\n")
 cat("  summaries/ – rate_comparison_summary.csv + meta-analysis text files\n")
+cat("\nKEY OUTPUT (hero figure):\n")
+cat(sprintf("  %s\n", file.path(out_plots, "forest_summary_combined.pdf")))

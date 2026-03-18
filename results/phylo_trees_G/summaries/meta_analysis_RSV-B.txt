@@ -1,0 +1,27 @@
+Meta-analysis: RSV-B
+Rate ratio (overall) = 1.002962 
+95% CI: 0.9968711 -- 1.00909 
+I² = 48.69155 %
+
+
+Random-Effects Model (k = 6; tau^2 estimator: REML)
+
+  logLik  deviance       AIC       BIC      AICc   
+ 15.8317  -31.6633  -27.6633  -28.4445  -21.6633   
+
+tau^2 (estimated amount of total heterogeneity): 0.0000 (SE = 0.0000)
+tau (square root of estimated tau^2 value):      0.0047
+I^2 (total heterogeneity / total variability):   48.69%
+H^2 (total variability / sampling variability):  1.95
+
+Test for Heterogeneity:
+Q(df = 5) = 9.8330, p-val = 0.0801
+
+Model Results:
+
+estimate      se    zval    pval    ci.lb   ci.ub    
+  0.0030  0.0031  0.9516  0.3413  -0.0031  0.0090    
+
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
